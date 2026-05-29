@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dasbor - MitraAja</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Full-screen auth shield overlay to prevent protected content flickering -->
+    <div id="auth-shield">
+        <div class="spinner-large"></div>
+        <p>Memverifikasi sesi Anda...</p>
+    </div>
+
+    <!-- Premium background glowing mesh shapes -->
+    <div class="bg-glow bg-glow-1"></div>
+    <div class="bg-glow bg-glow-2"></div>
+
+    <header class="main-header">
+        <div class="header-content">
+            <h1 class="logo-small">MitraAja</h1>
+            <div class="user-menu">
+                <p id="userInfo" class="user-name">Halo, Mitra!</p>
+                <button id="btnLogout" class="btn-logout">Logout</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="dashboard-container">
+        <div class="search-section">
+            <h2>Lacak Paket</h2>
+            <p class="subtitle">Masukkan nomor AWB untuk melihat detail pengiriman.</p>
+            <form id="searchForm" class="search-form">
+                <input type="text" id="etAwb" placeholder="Masukkan 14 angka AWB anda" required>
+                <button type="submit" id="btnSearch" class="btn-primary">Cari</button>
+            </form>
+        </div>
+
+        <div id="searchLoading" class="loading-state" style="display: none;">
+            <div class="spinner-large"></div>
+            <p>Mencari data...</p>
+        </div>
+
+        <div id="searchResult" class="result-section">
+            <!-- Hasil pencarian akan ditampilkan di sini oleh JavaScript -->
+        </div>
+    </main>
+
+    <script type="module" src="dashboard.js"></script>
+</body>
+</html>

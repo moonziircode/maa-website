@@ -1,0 +1,12 @@
+# Folder dependensi Node.js
+/node_modules
+
+# Folder hasil build Vite
+/dist
+
+# File environment lokal
+.env
+.env.*
+
+# File konfigurasi Firebase yang berisi kunci rahasia
+firebase-config.js
