@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - MitraAja</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Premium background glowing mesh shapes -->
+    <div class="bg-glow bg-glow-1"></div>
+    <div class="bg-glow bg-glow-2"></div>
+
+    <div class="login-container">
+        <div class="login-card">
+            <h1 class="logo">MitraAja</h1>
+            <p class="subtitle">Silakan masuk untuk melanjutkan</p>
+            
+            <form id="loginForm">
+                <div class="input-group">
+                    <label for="etNia">NIA</label>
+                    <input type="text" id="etNia" name="nia" autocomplete="username" required>
+                </div>
+                <div class="input-group">
+                    <label for="etPassword">Password</label>
+                    <input type="password" id="etPassword" name="password" autocomplete="current-password" required>
+                </div>
+                
+                <p id="errorMessage" class="error-message"></p>
+
+                <button type="submit" id="btnLogin" class="btn-primary">
+                    <span class="btn-text">Login</span>
+                    <div id="loadingSpinner" class="spinner" style="display: none;"></div>
+                </button>
+            </form>
+            
+            <a href="#" class="forgot-password">Lupa Kata Sandi?</a>
+        </div>
+        <p class="footer-text">Powered by Anteraja</p>
+    </div>
+
+    <script type="module" src="auth.js"></script>
+</body>
+</html>
