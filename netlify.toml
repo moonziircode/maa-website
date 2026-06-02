@@ -1,9 +1,17 @@
 [build]
-  command = "npm run build"
-  publish = "dist"
+  command = "npm run build" # atau perintah build Anda
+  publish = "dist" # atau folder output Anda
 
+# Proxy untuk API Otentikasi (CAS)
 [[redirects]]
-  from = "/api/*"
+  from = "/api-cas/*"
   to = "https://cas.anteraja.id/:splat"
+  status = 200
+  force = true
+
+# Proxy untuk API Utama (jika nanti dibutuhkan untuk fitur lain)
+[[redirects]]
+  from = "/api-main/*"
+  to = "https://api.anteraja.id/:splat"
   status = 200
   force = true
