@@ -2,6 +2,12 @@
   command = "npm run build" # atau perintah build Anda
   publish = "dist" # atau folder output Anda
 
+[[redirects]]
+  from = "/api/login"
+  to = "/.netlify/functions/login"
+  status = 200
+  force = true
+
 # Proxy untuk API Otentikasi (CAS)
 [[redirects]]
   from = "/cas/*"
