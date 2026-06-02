@@ -37,10 +37,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const requestBody = { nia, password };
 
     try {
-      const response = await fetch('/api/cas/v1/auth/login', {
+      const response = await fetch('/api-cas/cas/v1/auth/login', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'APP_ID': 'JV_APP',
+          'APP_SECRET_MIC': '937bad65-6f4a-4db6-adff-c946b3f6dd73'
         },
         body: JSON.stringify(requestBody)
       });
