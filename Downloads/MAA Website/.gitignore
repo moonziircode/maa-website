@@ -9,4 +9,3 @@
 .env.*
 
 # File konfigurasi Firebase yang berisi kunci rahasia
-firebase-config.js
