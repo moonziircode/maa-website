@@ -4,8 +4,8 @@
 
 # Proxy untuk API Otentikasi (CAS)
 [[redirects]]
-  from = "/api-cas/*"
-  to = "https://cas.anteraja.id/:splat"
+  from = "/cas/*"
+  to = "https://cas.anteraja.id/cas/:splat"
   status = 200
   force = true
 
