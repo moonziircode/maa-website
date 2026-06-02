@@ -123,7 +123,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     } catch (error) {
       console.error('Network or Login Error:', error);
-      errorMessage.textContent = 'Tidak ada koneksi internet atau terjadi kesalahan sistem. Silakan coba lagi.';
+      errorMessage.textContent = 'Detail Error: ' + error.message;
     } finally {
       // Re-enable button and hide loading state
       loadingSpinner.style.display = 'none';
