@@ -38,7 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     try {
       // Step 1: Get lt, execution, and JSESSIONID
-      const step1Response = await fetch('/api-cas/cas/login?isapp=true&acctype=emp', {
+      const step1Response = await fetch('/cas/login?isapp=true&acctype=emp', {
         method: 'POST',
         headers: {
           'APP_ID': 'JV_APP',
@@ -62,7 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
       formParams.append('lt', lt);
       formParams.append('execution', execution);
 
-      const step2Response = await fetch('/api-cas/cas/login?isapp=true&acctype=emp', {
+      const step2Response = await fetch('/cas/login?isapp=true&acctype=emp', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -73,7 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
 
       // Step 3: Get Service Ticket
-      const step3Response = await fetch('/api-cas/cas/login?service=https://api.anteraja.id', {
+      const step3Response = await fetch('/cas/login?service=https://api.anteraja.id', {
         method: 'POST',
         headers: {
           'APP_ID': 'JV_APP',

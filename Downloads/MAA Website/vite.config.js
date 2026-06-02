@@ -4,10 +4,9 @@ import { resolve } from 'path';
 export default defineConfig({
   server: {
     proxy: {
-      '/api-cas': {
+      '/cas': {
         target: 'https://cas.anteraja.id',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api-cas/, '')
       },
       '/api-main': {
         target: 'https://api.anteraja.id',
