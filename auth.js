@@ -37,21 +37,80 @@ document.addEventListener('DOMContentLoaded', () => {
     const requestBody = { nia, password };
 
     try {
-      const response = await fetch('/api-cas/cas/v1/auth/login', {
+      // Step 1: Get lt, execution, and JSESSIONID
+      const step1Response = await fetch('/api-cas/cas/login?isapp=true&acctype=emp', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'APP_ID': 'JV_APP',
+          'APP_SECRET_MIC': '937bad65-6f4a-4db6-adff-c946b3f6dd73'
+        }
+      });
+      if (!step1Response.ok) throw new Error('Gagal memuat metadata login');
+
+      const lt = step1Response.headers.get('lt');
+      const execution = step1Response.headers.get('execution');
+      if (!lt || !execution) throw new Error('Gagal mendapatkan tiket session CAS');
+
+      // Step 2: Authenticate with credentials
+      const formParams = new URLSearchParams();
+      formParams.append('isapp', 'true');
+      formParams.append('acctype', 'emp');
+      formParams.append('username', nia);
+      formParams.append('password', password);
+      formParams.append('_eventId', 'submit');
+      formParams.append('submit', 'login');
+      formParams.append('lt', lt);
+      formParams.append('execution', execution);
+
+      const step2Response = await fetch('/api-cas/cas/login?isapp=true&acctype=emp', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
           'APP_ID': 'JV_APP',
           'APP_SECRET_MIC': '937bad65-6f4a-4db6-adff-c946b3f6dd73'
         },
-        body: JSON.stringify(requestBody)
+        body: formParams.toString()
       });
 
-      const responseData = await response.json();
+      // Step 3: Get Service Ticket
+      const step3Response = await fetch('/api-cas/cas/login?service=https://api.anteraja.id', {
+        method: 'POST',
+        headers: {
+          'APP_ID': 'JV_APP',
+          'APP_SECRET_MIC': '937bad65-6f4a-4db6-adff-c946b3f6dd73'
+        }
+      });
 
-      if (response.ok && responseData.status === 'success') {
-        const token = responseData.data.token;
-        const user = responseData.data.user;
+      const redirectUrl = step3Response.headers.get('redirecturl');
+      if (!redirectUrl) throw new Error('NIA atau Password salah.');
+
+      const ticketMatch = redirectUrl.match(/ticket=([^&]+)/);
+      if (!ticketMatch) throw new Error('Gagal memproses tiket masuk.');
+      const ticket = ticketMatch[1];
+
+      // Step 4: Exchange ticket for session token
+      const step4Response = await fetch('/api-main/user/cas/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'token': '',
+          'APP_ID': 'JV_APP',
+          'APP_SECRET_MIC': '937bad65-6f4a-4db6-adff-c946b3f6dd73'
+        },
+        body: JSON.stringify({
+          ticket: ticket,
+          deviceId: 'web-client-' + Math.random().toString(36).substring(2),
+          appKey: 'MAA',
+          appSecret: 'santuy',
+          service: 'https://api.anteraja.id'
+        })
+      });
+
+      const step4Data = await step4Response.json();
+
+      if (step4Response.ok && step4Data.status === 0) {
+        const token = step4Data.content.token;
+        const user = step4Data.content.agent;
 
         // Save session credentials
         localStorage.setItem('authToken', token);
@@ -60,8 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Redirect to dashboard page
         window.location.href = 'dashboard.html';
       } else {
-        // Display API returned error messages
-        errorMessage.textContent = responseData.message || 'NIA atau Password salah.';
+        errorMessage.textContent = step4Data.info || 'NIA atau Password salah.';
       }
     } catch (error) {
       console.error('Network or Login Error:', error);
