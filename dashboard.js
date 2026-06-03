@@ -4,32 +4,40 @@ if (!localStorage.getItem('authToken')) {
 }
 
 import { db } from './firebase-config.js';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, arrayUnion } from 'firebase/firestore';
 
 document.addEventListener('DOMContentLoaded', () => {
   const authShield = document.getElementById('auth-shield');
   const userInfoElement = document.getElementById('userInfo');
   const logoutBtn = document.getElementById('btnLogout');
-  const searchForm = document.getElementById('searchForm');
+  
+  const scanForm = document.getElementById('scanForm');
   const etAwb = document.getElementById('etAwb');
-  const btnSearch = document.getElementById('btnSearch');
-  const searchLoading = document.getElementById('searchLoading');
-  const searchResult = document.getElementById('searchResult');
+  const btnScan = document.getElementById('btnScan');
+  const statusSelect = document.getElementById('statusSelect');
+  const scanCounter = document.getElementById('scanCounter');
+  const scanLoading = document.getElementById('scanLoading');
+  const scanHistory = document.getElementById('scanHistory');
+
+  let totalScanned = 0;
 
   // Hide the auth shield since token check passed
   if (authShield) {
     authShield.style.opacity = '0';
     setTimeout(() => {
       authShield.style.display = 'none';
+      etAwb.focus(); // Autofocus ready for scanner
     }, 400);
   }
 
   // Display User Information
   const userInfoStr = localStorage.getItem('userInfo');
+  let userName = 'Mitra';
   if (userInfoStr) {
     try {
       const user = JSON.parse(userInfoStr);
-      userInfoElement.textContent = `Halo, ${user.name || 'Mitra'}!`;
+      userName = user.name || 'Mitra';
+      userInfoElement.textContent = `Halo, ${userName}!`;
     } catch (e) {
       console.error('Error parsing userInfo:', e);
       userInfoElement.textContent = 'Halo, Mitra!';
@@ -43,146 +51,113 @@ document.addEventListener('DOMContentLoaded', () => {
     window.location.href = 'login.html';
   });
 
-  // Search Function
-  searchForm.addEventListener('submit', (e) => {
+  // Play a short beep sound
+  const playBeep = (success = true) => {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      osc.type = success ? 'sine' : 'sawtooth';
+      osc.frequency.setValueAtTime(success ? 1200 : 300, ctx.currentTime);
+      gainNode.gain.setValueAtTime(0.1, ctx.currentTime);
+      osc.connect(gainNode);
+      gainNode.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + (success ? 0.1 : 0.3));
+    } catch (e) {
+      console.log('Audio disabled', e);
+    }
+  };
+
+  // Scan Function
+  scanForm.addEventListener('submit', (e) => {
     e.preventDefault();
 
-    // Reset result and show loading
-    searchResult.innerHTML = '';
-    const awbNumber = etAwb.value.trim();
+    const awbNumber = etAwb.value.trim().toUpperCase();
+    const selectedStatus = statusSelect.value;
 
     if (!awbNumber) {
-      searchResult.innerHTML = `
-        <div style="color: var(--error-red); text-align: center; padding: 15px; font-weight: 500;">
-          Harap masukkan nomor AWB terlebih dahulu.
-        </div>
-      `;
       return;
     }
 
-    searchLoading.style.display = 'block';
-    btnSearch.disabled = true;
+    scanLoading.style.display = 'block';
+    btnScan.disabled = true;
+    etAwb.disabled = true;
 
-    // Connect to Firestore shipments collection
     const docRef = doc(db, 'shipments', awbNumber);
+    
+    // Use setDoc with merge:true so it creates the document if it doesn't exist
+    const updateData = {
+      status: selectedStatus,
+      updatedAt: serverTimestamp(),
+      statusHistory: arrayUnion({
+        status: selectedStatus,
+        timestamp: new Date().toISOString(), // Use ISO string to avoid complex serialization issues
+        location: 'Hub Operasional',
+        operator: userName
+      })
+    };
 
-    getDoc(docRef)
-      .then((docSnap) => {
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          
-          // Process statusHistory timeline
-          let history = data.statusHistory || [];
-          
-          // Sort statusHistory by timestamp to display latest at the top
-          // Firestore Timestamp objects have seconds and nanoseconds.
-          history.sort((a, b) => {
-            const timeA = a.timestamp && typeof a.timestamp.toDate === 'function' ? a.timestamp.toDate().getTime() : new Date(a.timestamp).getTime();
-            const timeB = b.timestamp && typeof b.timestamp.toDate === 'function' ? b.timestamp.toDate().getTime() : new Date(b.timestamp).getTime();
-            return timeB - timeA; // Descending order (latest first)
-          });
+    setDoc(docRef, updateData, { merge: true })
+      .then(() => {
+        playBeep(true);
+        // Update Counter
+        totalScanned++;
+        scanCounter.textContent = totalScanned;
 
-          // Build timeline HTML
-          let timelineHTML = '';
-          if (history.length > 0) {
-            history.forEach((item) => {
-              let timeStr = '';
-              if (item.timestamp && typeof item.timestamp.toDate === 'function') {
-                timeStr = item.timestamp.toDate().toLocaleString('id-ID');
-              } else if (item.timestamp) {
-                timeStr = new Date(item.timestamp).toLocaleString('id-ID');
-              } else {
-                timeStr = 'Waktu tidak tersedia';
-              }
-
-              const locationStr = item.location ? ` - ${item.location}` : '';
-
-              timelineHTML += `
-                <div class="timeline-item">
-                  <div class="timeline-status">${item.status || 'Pembaruan Status'}</div>
-                  <div class="timeline-meta">${timeStr}${locationStr}</div>
-                </div>
-              `;
-            });
-          } else {
-            timelineHTML = `
-              <div class="timeline-item">
-                <div class="timeline-status">Belum ada riwayat update status.</div>
-              </div>
-            `;
-          }
-
-          // Build full shipment details card HTML
-          searchResult.innerHTML = `
-            <div class="result-card">
-              <h3>Detail Pengiriman</h3>
-              <div class="detail-grid">
-                <div class="detail-item">
-                  <p>Nomor AWB</p>
-                  <strong>${data.waybillNo || awbNumber}</strong>
-                </div>
-                <div class="detail-item">
-                  <p>Booking ID</p>
-                  <strong>${data.bookingId || '-'}</strong>
-                </div>
-                <div class="detail-item">
-                  <p>Status Terkini</p>
-                  <strong>${data.status || 'Dalam Proses'}</strong>
-                </div>
-                <div class="detail-item">
-                  <p>Nama Barang</p>
-                  <strong>${data.itemName || '-'}</strong>
-                </div>
-                <div class="detail-item">
-                  <p>Berat Barang</p>
-                  <strong>${data.weightKg ? data.weightKg + ' Kg' : '-'}</strong>
-                </div>
-                <div class="detail-item">
-                  <p>Tipe Layanan</p>
-                  <strong>${data.serviceType || '-'}</strong>
-                </div>
-                <div class="detail-item">
-                  <p>Pengirim</p>
-                  <strong>${data.senderName || '-'}</strong>
-                </div>
-                <div class="detail-item">
-                  <p>Penerima</p>
-                  <strong>${data.recipientName || '-'}</strong>
-                </div>
-              </div>
-
-              <h4 style="margin-bottom: 20px; font-weight: 600; color: var(--dark-grey); font-size: 1.1rem; border-bottom: 1px solid var(--light-grey); padding-bottom: 10px;">Riwayat Status Pengiriman</h4>
-              <div class="timeline">
-                ${timelineHTML}
-              </div>
-            </div>
-          `;
-        } else {
-          // Document does not exist
-          searchResult.innerHTML = `
-            <div class="state-panel" style="text-align: center; padding: 40px 20px; background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05); border: 1px solid var(--light-grey);">
-              <div class="state-icon" style="color: var(--medium-grey); width: 64px; height: 64px; background: rgba(0,0,0,0.03); border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 15px;">
-                <svg viewBox="0 0 24 24" width="32" height="32" fill="currentColor">
-                  <path d="M12,20A8,8 0 1,1 20,12A8,8 0 0,1 12,20M12,2A10,10 0 1,0 22,12A10,10 0 0,0 12,2M12,6A1,1 0 0,0 11,7V13A1,1 0 0,0 12,14H16A1,1 0 0,0 16,12H13V7A1,1 0 0,0 12,6Z" />
-                </svg>
-              </div>
-              <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 5px; color: var(--dark-grey);">Data tidak ditemukan</h3>
-              <p style="color: var(--medium-grey); font-size: 0.95rem; max-width: 400px; margin: 0 auto;">Nomor AWB tidak terdaftar atau tidak ditemukan dalam sistem database.</p>
-            </div>
-          `;
+        // Add to History UI
+        const historyItem = document.createElement('div');
+        historyItem.className = 'history-item success';
+        historyItem.innerHTML = `
+          <div class="history-icon">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"/></svg>
+          </div>
+          <div class="history-details">
+            <strong>${awbNumber}</strong>
+            <span>${selectedStatus}</span>
+          </div>
+          <div class="history-time">${new Date().toLocaleTimeString('id-ID')}</div>
+        `;
+        
+        // Remove empty state message if it exists
+        const emptyMsg = scanHistory.querySelector('.empty-history');
+        if (emptyMsg) {
+          emptyMsg.remove();
         }
+        
+        scanHistory.prepend(historyItem);
       })
       .catch((error) => {
-        console.error('Firestore connection error:', error);
-        searchResult.innerHTML = `
-          <div style="color: var(--error-red); text-align: center; padding: 20px; font-weight: 500; background: white; border-radius: 12px; border: 1px solid rgba(235, 87, 87, 0.2); box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);">
-            Gagal mengambil data dari database. Silakan periksa koneksi internet Anda atau coba lagi beberapa saat lagi.
+        console.error('Firestore update error:', error);
+        playBeep(false);
+        
+        // Add to History UI (Error)
+        const historyItem = document.createElement('div');
+        historyItem.className = 'history-item error';
+        historyItem.innerHTML = `
+          <div class="history-icon">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/></svg>
           </div>
+          <div class="history-details">
+            <strong>${awbNumber}</strong>
+            <span class="text-error">Gagal Simpan</span>
+          </div>
+          <div class="history-time">${new Date().toLocaleTimeString('id-ID')}</div>
         `;
+        
+        const emptyMsg = scanHistory.querySelector('.empty-history');
+        if (emptyMsg) {
+          emptyMsg.remove();
+        }
+        
+        scanHistory.prepend(historyItem);
       })
       .finally(() => {
-        searchLoading.style.display = 'none';
-        btnSearch.disabled = false;
+        scanLoading.style.display = 'none';
+        btnScan.disabled = false;
+        etAwb.disabled = false;
+        etAwb.value = '';
+        etAwb.focus(); // Keep focus for continuous scanning
       });
   });
 });

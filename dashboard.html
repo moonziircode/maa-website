@@ -30,23 +30,50 @@
         </div>
     </header>
 
-    <main class="dashboard-container">
-        <div class="search-section">
-            <h2>Lacak Paket</h2>
-            <p class="subtitle">Masukkan nomor AWB untuk melihat detail pengiriman.</p>
-            <form id="searchForm" class="search-form">
-                <input type="text" id="etAwb" placeholder="Masukkan 14 angka AWB anda" required>
-                <button type="submit" id="btnSearch" class="btn-primary">Cari</button>
+    <main class="dashboard-container scanner-layout">
+        <!-- Counter Section -->
+        <div class="counter-section">
+            <h2 class="counter-title">Total Scan</h2>
+            <div class="counter-number" id="scanCounter">0</div>
+        </div>
+
+        <!-- Scanning Section -->
+        <div class="scan-card">
+            <div class="form-group">
+                <label for="statusSelect">Status Operasional</label>
+                <select id="statusSelect" class="status-dropdown">
+                    <option value="Paket Tiba di Hub">Paket Tiba di Hub</option>
+                    <option value="Sedang Dikirim oleh Kurir">Sedang Dikirim oleh Kurir</option>
+                    <option value="Paket Berhasil Terkirim">Paket Berhasil Terkirim</option>
+                    <option value="Gagal Kirim">Gagal Kirim</option>
+                    <option value="Paket Retur">Paket Retur</option>
+                </select>
+            </div>
+
+            <form id="scanForm" class="scan-form">
+                <div class="input-wrapper">
+                    <input type="text" id="etAwb" placeholder="Scan barcode AWB di sini..." required autofocus autocomplete="off">
+                    <button type="submit" id="btnScan" class="btn-scan">
+                        <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+                            <path d="M4,4H10V10H4V4M20,4V10H14V4H20M14,15H16V13H14V11H16V13H18V11H20V13H18V15H20V18H18V20H16V18H13V20H11V16H14V15M16,15V18H18V15H16M4,20V14H10V20H4M6,6V8H8V6H6M16,6V8H18V6H16M6,16V18H8V16H6M4,11H6V13H4V11M9,11H13V15H11V13H9V11M11,6H13V10H11V6M2,2V6H0V2A2,2 0 0,1 2,0H6V2H2M22,0A2,2 0 0,1 24,2V6H22V2H18V0H22M2,18V22H6V24H2A2,2 0 0,1 0,22V18H2M22,22V18H24V22A2,2 0 0,1 22,24H18V22H22Z" />
+                        </svg>
+                    </button>
+                </div>
+                <small class="scan-hint">Arahkan kursor ke dalam kotak di atas sebelum men-scan.</small>
             </form>
         </div>
 
-        <div id="searchLoading" class="loading-state" style="display: none;">
+        <div id="scanLoading" class="loading-state" style="display: none;">
             <div class="spinner-large"></div>
-            <p>Mencari data...</p>
+            <p>Memperbarui data...</p>
         </div>
 
-        <div id="searchResult" class="result-section">
-            <!-- Hasil pencarian akan ditampilkan di sini oleh JavaScript -->
+        <!-- History Section -->
+        <div class="history-section">
+            <h3 class="history-title">Riwayat Scan Sesi Ini</h3>
+            <div id="scanHistory" class="scan-history-list">
+                <div class="empty-history">Belum ada paket yang di-scan.</div>
+            </div>
         </div>
     </main>
 
