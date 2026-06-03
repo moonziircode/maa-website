@@ -1,23 +1,31 @@
-export const handler = async (event, context) => {
-  if (event.httpMethod !== 'POST') {
-    return {
-      statusCode: 405,
-      body: JSON.stringify({ message: 'Method Not Allowed' })
-    };
+export default async function handler(req, res) {
+  // Allow CORS if needed (Vercel best practice)
+  res.setHeader('Access-Control-Allow-Credentials', true);
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
+  );
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  if (req.method !== 'POST') {
+    return res.status(405).json({ message: 'Method Not Allowed' });
   }
 
   try {
-    const { nia, password } = JSON.parse(event.body);
+    // Vercel automatically parses JSON bodies
+    const { nia, password } = req.body || {};
 
     if (!nia || !password) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ message: 'NIA dan Password wajib diisi.' })
-      };
+      return res.status(400).json({ message: 'NIA dan Password wajib diisi.' });
     }
 
     // Step 1: Get metadata and JSESSIONID from CAS
-    console.log('Serverless CAS Step 1: Getting metadata');
+    console.log('Vercel CAS Step 1: Getting metadata');
     const step1Url = 'https://cas.anteraja.id/cas/login?isapp=true&acctype=emp';
     const step1Response = await fetch(step1Url, {
       method: 'POST',
@@ -42,7 +50,7 @@ export const handler = async (event, context) => {
     }
 
     // Step 2: Authenticate credentials
-    console.log('Serverless CAS Step 2: Authenticating credentials');
+    console.log('Vercel CAS Step 2: Authenticating credentials');
     const step2Url = 'https://cas.anteraja.id/cas/login?isapp=true&acctype=emp';
     const formParams = new URLSearchParams();
     formParams.append('isapp', 'true');
@@ -74,15 +82,11 @@ export const handler = async (event, context) => {
     }
 
     if (!castgc) {
-      return {
-        statusCode: 401,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: 'NIA atau Password salah.' })
-      };
+      return res.status(401).json({ message: 'NIA atau Password salah.' });
     }
 
     // Step 3: Get Service Ticket
-    console.log('Serverless CAS Step 3: Getting Service Ticket');
+    console.log('Vercel CAS Step 3: Getting Service Ticket');
     const step3Url = 'https://cas.anteraja.id/cas/login?service=https://api.anteraja.id';
     const step3Response = await fetch(step3Url, {
       method: 'POST',
@@ -106,7 +110,7 @@ export const handler = async (event, context) => {
     }
 
     // Step 4: Token Exchange
-    console.log('Serverless CAS Step 4: Exchanging ticket for token');
+    console.log('Vercel CAS Step 4: Exchanging ticket for token');
     const step4Url = 'https://api.anteraja.id/user/cas/login';
     const step4Response = await fetch(step4Url, {
       method: 'POST',
@@ -118,7 +122,7 @@ export const handler = async (event, context) => {
       },
       body: JSON.stringify({
         ticket: ticket,
-        deviceId: 'web-client-serverless',
+        deviceId: 'web-client-vercel',
         appKey: 'MAA',
         appSecret: 'santuy',
         service: 'https://api.anteraja.id'
@@ -128,34 +132,19 @@ export const handler = async (event, context) => {
     const step4Data = await step4Response.json();
 
     if (step4Response.ok && step4Data.status === 0) {
-      console.log('Serverless CAS Success: Token generated');
-      return {
-        statusCode: 200,
-        headers: { 
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*'
-        },
-        body: JSON.stringify({
-          status: 'success',
-          data: {
-            token: step4Data.content.token,
-            user: step4Data.content.agent
-          }
-        })
-      };
+      console.log('Vercel CAS Success: Token generated');
+      return res.status(200).json({
+        status: 'success',
+        data: {
+          token: step4Data.content.token,
+          user: step4Data.content.agent
+        }
+      });
     } else {
-      return {
-        statusCode: 400,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: step4Data.info || 'Autentikasi gagal.' })
-      };
+      return res.status(400).json({ message: step4Data.info || 'Autentikasi gagal.' });
     }
   } catch (error) {
-    console.error('Serverless error:', error);
-    return {
-      statusCode: 500,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: error.message })
-    };
+    console.error('Vercel error:', error);
+    return res.status(500).json({ message: error.message });
   }
-};
+}
